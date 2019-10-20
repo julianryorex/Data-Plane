@@ -22,6 +22,13 @@ if __name__ == '__main__':
     object_L.append(server)
     router_a = network.Router(name='A', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_a)
+    ben = network.Host(3)
+    object_L.append(ben)
+    julian = network.Host(4)
+    object_L.append(julian)
+    router_b = network.Router(name='B', intf_count=1, max_queue_size=router_queue_size)
+    router_c = network.Router(name='C', intf_count=1, max_queue_size=router_queue_size)
+    router_d = network.Router(name='D', intf_count=1, max_queue_size=router_queue_size)
 
     #create a Link Layer to keep track of links between network nodes
     link_layer = link.LinkLayer()
@@ -31,7 +38,18 @@ if __name__ == '__main__':
     #link parameters: from_node, from_intf_num, to_node, to_intf_num, mtu
     link_layer.add_link(link.Link(client, 0, router_a, 0, 50))
     link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
-
+    link_layer.add_link(link.Link(router_a, 0, router_b, 0, 50))
+    link_layer.add_link(link.Link(router_a, 0, router_c, 0, 50))
+    link_layer.add_link(link.Link(router_b, 0, router_d, 0, 50))
+    link_layer.add_link(link.Link(router_c, 0, router_d, 0, 50))
+    link_layer.add_link(link.Link(router_d, 0, ben, 0, 50))
+    link_layer.add_link(link.Link(router_d, 0, julian, 0, 50))
+    link_layer.add_link(link.Link(router_d, 0, router_b, 0, 50))
+    link_layer.add_link(link.Link(router_d, 0, router_c, 0, 50))
+    link_layer.add_link(link.Link(ben, 0, router_d, 0, 50))
+    link_layer.add_link(link.Link(julian, 0, router_d, 0, 50))
+    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
+    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
 
     #start all the objects
     thread_L = []
@@ -47,7 +65,7 @@ if __name__ == '__main__':
 
     #create some send events
     for i in range(3):#here we configure the message
-        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm7 %d' % i)
+        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm %d' % i)
 
 
     #give the network sufficient time to transfer all packets before quitting
