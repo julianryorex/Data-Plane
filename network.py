@@ -141,7 +141,7 @@ class Host:#segmentation also should be implemented in the client
     def udt_receive(self):
 
         pkt_S = self.in_intf_L[0].get()
-        
+
         if pkt_S is not None:
             print('%s: received packet "%s" on the in interface' % (self, pkt_S))
 
@@ -194,6 +194,14 @@ class Router:
                         if p.length > self.out_intf_L[i].mtu:
                             print("e")
                             #split
+                        for i in self.out_intf_L:
+                            if self.out_intf_L[i].visited is False:
+                                self.out_intf_L[i] = True
+                                self.out_intf_L[i].put(p.to_byte_S(), True)
+                                print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
+                                    % (self, p, i, i, self.out_intf_L[i].mtu))
+                            else:
+                                print('Error :(')
                     self.out_intf_L[i].put(p.to_byte_S(), True)
                     print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
                         % (self, p, i, i, self.out_intf_L[i].mtu))
