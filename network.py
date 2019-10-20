@@ -17,6 +17,7 @@ class Interface:
     ##get packet from the queue interface
     def get(self):
         try:
+            print("Queue: ", self.queue.get(False))
             return self.queue.get(False)
         except queue.Empty:
             return None
@@ -35,6 +36,8 @@ class Interface:
 class NetworkPacket:
     ## packet encoding lengths
     dst_addr_S_length = 5
+    general_length = 5
+    datagramId = 0
 
     ##@param dst_addr: address of the destination host
     # @param data_S: packet payload
@@ -62,21 +65,36 @@ class NetworkPacket:
         data_S = byte_S[NetworkPacket.dst_addr_S_length : ]
 
         return self(dst_addr, data_S, length)
+
     @classmethod
-    def split_packet(self, bytes_packet, MTU):
+    def split_packet(self, bytes_packet, MTU, destination):
+        fragmentId = 0
         count = 0
         array_count=0
         array_buffer = []
         packet_array = [] # array list
         for b in bytes_packet:
-            count = count +1
-            print (b)
+            print("Count: ", count)
+            count = count + 1
+            print("Type: " , type(b))
+            print("B: ", b)
             array_buffer.append(b)
+
             if count >= MTU:
-                print("to bigggggggggggggg")
-                packet_array.append(array_buffer)
-                count =0
-                array_count = array_count +1
+                packet_array.append(str(destination).zfill(self.dst_addr_S_length)) # destination
+                packet_array.append(str(self.datagramId).zfill(self.general_length)) # datagramId
+                packet_array.append(str(fragmentId).zfill(self.general_length)) # fragmentId
+                packet_array.append(array_buffer) # data
+                count = 0
+                array_count += 1
+                array_buffer = []
+                fragmentId += 1
+
+
+
+        # created an array of segmented packets
+        self.datagramId += 1
+
 
         return packet_array
 
@@ -101,19 +119,29 @@ class Host:#segmentation also should be implemented in the client
     def udt_send(self, dst_addr, data_S):
         #need to split here ?
         p = NetworkPacket(dst_addr, data_S,None)
-        bytes_to_compute_length =p.to_byte_S()
-        packet =NetworkPacket.from_byte_S(bytes_to_compute_length)
+        bytes_to_compute_length = p.to_byte_S()
+        # print("Bytes: " , bytes_to_compute_length)
+        packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
+        destination = packet.dst_addr
+        # print("Destination: ", destination)
         if packet.length is not None:
             if packet.length > self.out_intf_L[0].mtu:
                 print("packet too big")#need to split
-                packet_array = NetworkPacket.split_packet(bytes_to_compute_length,self.out_intf_L[0].mtu)
-        self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully
+                packet_array = NetworkPacket.split_packet(bytes_to_compute_length,self.out_intf_L[0].mtu, destination)
+                for packet in packet_array:
+                    s = ""
+                    p_string = s.join(packet)
+                    pack = NetworkPacket.from_byte_S(p_string)
+                    self.out_intf_L[0].put(pack.to_byte_S())
+            else:
+                self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully NO SEG
         print('%s: sending packet "%s" on the out interface with mtu=%d' % (self, p, self.out_intf_L[0].mtu))
 
     ## receive packet from the network layer
     def udt_receive(self):
 
         pkt_S = self.in_intf_L[0].get()
+        
         if pkt_S is not None:
             print('%s: received packet "%s" on the in interface' % (self, pkt_S))
 

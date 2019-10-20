@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     #create some send events
     for i in range(3):#here we configure the message
-        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm %d' % i)
+        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm7 %d' % i)
 
 
     #give the network sufficient time to transfer all packets before quitting
