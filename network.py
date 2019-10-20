@@ -66,20 +66,18 @@ class NetworkPacket:
     def split_packet(self, bytes_packet, MTU):
         count = 0
         array_count=0
-        array_buffer=""
-        packet_array=[None,None,None,None,None]
+        array_buffer = []
+        packet_array = [] # array list
         for b in bytes_packet:
             count = count +1
             print (b)
-            array_buffer +=b
+            array_buffer.append(b)
             if count >= MTU:
                 print("to bigggggggggggggg")
-                packet_array[array_count]=array_buffer
+                packet_array.append(array_buffer)
                 count =0
                 array_count = array_count +1
-                array_buffer=None
 
-        packet_array = None
         return packet_array
 
 
