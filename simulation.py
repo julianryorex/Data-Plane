@@ -16,10 +16,10 @@ if __name__ == '__main__':
     object_L = [] #keeps track of objects, so we can kill their threads
 
     #create network nodes
-    client = network.Host(1)
-    object_L.append(client)
-    server = network.Host(2)
-    object_L.append(server)
+    host1 = network.Host(1)
+    object_L.append(host1)
+    host2 = network.Host(2)
+    object_L.append(host2)
     router_a = network.Router(name='A', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_a)
     ben = network.Host(3)
@@ -36,20 +36,14 @@ if __name__ == '__main__':
 
     #add all the links
     #link parameters: from_node, from_intf_num, to_node, to_intf_num, mtu
-    link_layer.add_link(link.Link(client, 0, router_a, 0, 50))
-    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
+    link_layer.add_link(link.Link(host1, 0, router_a, 0, 50))
+    link_layer.add_link(link.Link(host2, 0, router_a, 0, 50))
     link_layer.add_link(link.Link(router_a, 0, router_b, 0, 50))
     link_layer.add_link(link.Link(router_a, 0, router_c, 0, 50))
     link_layer.add_link(link.Link(router_b, 0, router_d, 0, 50))
     link_layer.add_link(link.Link(router_c, 0, router_d, 0, 50))
     link_layer.add_link(link.Link(router_d, 0, ben, 0, 50))
     link_layer.add_link(link.Link(router_d, 0, julian, 0, 50))
-    link_layer.add_link(link.Link(router_d, 0, router_b, 0, 50))
-    link_layer.add_link(link.Link(router_d, 0, router_c, 0, 50))
-    link_layer.add_link(link.Link(ben, 0, router_d, 0, 50))
-    link_layer.add_link(link.Link(julian, 0, router_d, 0, 50))
-    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
-    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
 
     #start all the objects
     thread_L = []
