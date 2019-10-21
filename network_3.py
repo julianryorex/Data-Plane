@@ -123,7 +123,7 @@ class Host:#segmentation also should be implemented in the client
         # print("Bytes: " , bytes_to_compute_length)
         packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
         destination = packet.dst_addr
-        # print("Destination: ", destination)
+        print("Destination: ", destination)
         if packet.length is not None:
             if packet.length > self.out_intf_L[0].mtu:
                 print("packet too big")#need to split
@@ -135,12 +135,17 @@ class Host:#segmentation also should be implemented in the client
                     self.out_intf_L[0].put(pack.to_byte_S())
             else:
                 self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully NO SEG
-        print('%s: sending packet "%s" on the out interface with mtu=%d' % (self, p, self.out_intf_L[0].mtu))
+        print('%s: sending packet "%s" out the interface "%s" with mtu=%d' % (self, p, self.out_intf_L[0], self.out_intf_L[0].mtu))
 
     ## receive packet from the network layer
     def udt_receive(self):
 
         pkt_S = self.in_intf_L[0].get()
+        #packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
+
+        #if packet.dest_addr != self.addr:
+        #    print("to be forwarded")
+        #    forward()
 
         if pkt_S is not None:
             print('%s: received packet "%s" on the in interface' % (self, pkt_S))
@@ -171,7 +176,7 @@ class Router:
         self.in_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
         self.out_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
         #route_to
-        #self.route_table = route_table
+        #route_table = route_table
 
     ## called when printing the object
     def __str__(self):
