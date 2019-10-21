@@ -11,13 +11,13 @@ import threading
 class Interface:
     ## @param maxsize - the maximum size of the queue storing packets
     def __init__(self, maxsize=0):
-        self.queue = queue.Queue(maxsize);
+        self.queue = queue.Queue(maxsize)
         self.mtu = None
 
     ##get packet from the queue interface
     def get(self):
         try:
-            print("Queue: ", self.queue.get(False))
+            #print("GET Queue")
             return self.queue.get(False)
         except queue.Empty:
             return None
@@ -27,6 +27,7 @@ class Interface:
     # @param block - if True, block until room in queue, if False may throw queue.Full exception
     def put(self, pkt, block=False):
         self.queue.put(pkt, block)
+        #print("PUT Queue")
 
 
 ## Implements a network layer packet (different from the RDT packet
@@ -118,6 +119,7 @@ class Host:#segmentation also should be implemented in the client
     # @param data_S: data being transmitted to the network layer
     def udt_send(self, dst_addr, data_S):
         #need to split here ?
+        #print("SEND")
         p = NetworkPacket(dst_addr, data_S,None)
         bytes_to_compute_length = p.to_byte_S()
         # print("Bytes: " , bytes_to_compute_length)
@@ -140,15 +142,16 @@ class Host:#segmentation also should be implemented in the client
     ## receive packet from the network layer
     def udt_receive(self):
 
+        #print('%s RECEIVE' % self)
         pkt_S = self.in_intf_L[0].get()
-        #packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
-
-        #if packet.dest_addr != self.addr:
-        #    print("to be forwarded")
-        #    forward()
 
         if pkt_S is not None:
-            print('%s: received packet "%s" on the in interface' % (self, pkt_S))
+            #if pkt_S.dst_addr is self.addr:
+                print('%s: received packet "%s" on the in interface' % (self, pkt_S))
+                print('HOST %s: RECEIVED packet' % (self.addr))
+            #else:
+                #print('%s: received packet "%s" is being forwarded' % (self, pkt_S))
+                #pkt_S.forward()
 
     ## thread target for the host to keep receiving data
     def run(self):
@@ -182,59 +185,10 @@ class Router:
     def __str__(self):
         return 'Router_%s' % (self.name)
 
-         #this picks the interface with the smallest MTU to pass through to Dijkstra's
-    def smallest_MTU(all_links): #all_links = LinkLayer.link_L[]
-
-        current_smallest = None #current_smallest is the interface with the smallest mtu
-
-        for i in link_L:
-            #gets next link in the list
-            next_Link = link_L[i].to_node
-
-            if next_Link.visited is False:
-                if current_smallest is None:
-                    current_smallest = next_Link
-                elif current_smallest.mtu > next_Link.in_intf.mtu:
-                    current_smallest = next_Link
-
-        return current_smallest
-
-    #finds the shortest path
-    #all_links = LinkLayer.link_L[] - link array
-    #current_smallest = smallest_MTU() - interface
-    def dijkstra(self, current_smallest, all_links):
-        #Dijkstra's is complete if all the hosts/routers were visited\
-
-        if current_smallest is None:
-            return
-        #marks the candidate as visited
-        current_smallest.visited = True
-
-        #loops through all the neighbors (Interface)
-        for i in current_smallest.in_intf_L:
-            neighbor = all_links[i].to_node
-            weight = current_smallest.in_intf_L[i].total_mtu
-            potential_relax = weight + (current_smallest.mtu)
-
-            #checks if the potential relaxed is less than the current distance
-            #puts the new shortest distance into the neighbors
-            if potential_relax < neighbor.total_mtu:
-                neighbor.total_mtu = potential_relax
-                short_path = current_smallest
-
-        return
-
-        #source: intf.addr
-        #dest: intf.addr
-        #def route_table(self, source, dest):
-            #if source == 3 or source == 4:
-                #print("error these only receive")
-            #elif source == 1:
-                #forward()
-
     ## look through the content of incoming interfaces and forward to
     # appropriate outgoing interfaces
     def forward(self): #we need to change this method to implement fragmentation#MTU is in bytes
+        #print("__________forward")
         for i in range(len(self.in_intf_L)):
             pkt_S = None
             try:
@@ -252,15 +206,11 @@ class Router:
                             print("e")
                             #split
                         for i in self.out_intf_L:
-                            if self.out_intf_L[i].visited is False: # check if the interface has been visited
-                                self.out_intf_L[i].visited = True # mark as visisted
-                                self.out_intf_L[i].put(p.to_byte_S(), True)
-                                print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
-                                    % (self, p, i, self.out_intf_L[i], self.out_intf_L[i].mtu))
-                            else:
-                                print('Error :(')
+                                i.put(p.to_byte_S(), True)
+                                print('%s: forwarding packet "%s" from interface with mtu %d' \
+                                    % (self, p, i.mtu))
             except queue.Full:
-                print('%s: packet "%s" lost on interface %d' % (self, p, i))
+                print('%s: packet "%s" lost on interface' % (self, p))
                 pass
 
     ## thread target for the host to keep forwarding data
