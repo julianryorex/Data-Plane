@@ -3,7 +3,7 @@ Created on Oct 12, 2016
 
 @author: mwittie
 '''
-import network
+import network_3
 import link
 import threading
 from time import sleep
@@ -16,21 +16,21 @@ if __name__ == '__main__':
     object_L = [] #keeps track of objects, so we can kill their threads
 
     #create network nodes
-    host1 = network.Host(1)
+    host1 = network_3.Host(1)
     object_L.append(host1)
-    host2 = network.Host(2)
+    host2 = network_3.Host(2)
     object_L.append(host2)
-    router_a = network.Router(name='A', intf_count=1, max_queue_size=router_queue_size)
+    router_a = network_3.Router(name='A', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_a)
-    ben = network.Host(3)
+    ben = network_3.Host(3)
     object_L.append(ben)
-    julian = network.Host(4)
+    julian = network_3.Host(4)
     object_L.append(julian)
-    router_b = network.Router(name='B', intf_count=1, max_queue_size=router_queue_size)
+    router_b = network_3.Router(name='B', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_b)
-    router_c = network.Router(name='C', intf_count=1, max_queue_size=router_queue_size)
+    router_c = network_3.Router(name='C', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_c)
-    router_d = network.Router(name='D', intf_count=1, max_queue_size=router_queue_size)
+    router_d = network_3.Router(name='D', intf_count=1, max_queue_size=router_queue_size)
     object_L.append(router_d)
 
     #create a Link Layer to keep track of links between network nodes
@@ -68,7 +68,8 @@ if __name__ == '__main__':
 
     #create some send events
     for i in range(3):#here we configure the message
-        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm %d' % i)
+        host1.udt_send(3, 'Sample data Mmm %d' % i)
+        
 
 
     #give the network sufficient time to transfer all packets before quitting

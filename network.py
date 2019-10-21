@@ -164,6 +164,7 @@ class Router:
     ##@param name: friendly router name for debugging
     # @param intf_count: the number of input and output interfaces
     # @param max_queue_size: max queue length (passed to Interface)
+    # The routing table for each router should be passed into the Router constructor
     def __init__(self, name, intf_count, max_queue_size):
         self.stop = False #for thread termination
         self.name = name
@@ -177,6 +178,11 @@ class Router:
 
     ## look through the content of incoming interfaces and forward to
     # appropriate outgoing interfaces
+
+    ## TODO:
+    # Create routing tables so that Host 1/2 can send packets to Host 3/4 respectively
+    #The format of these is up to you. You will also need to modify the Router class to forward the packets correctly between interfaces according to your routing tables.
+    # Finally, third, configure the routing tables to forward packets from Host 1 through Router B and from Host 2 through Router C. You may extend NetworkPacket with a source address, but it is not necessary to forward a packet onto different paths.
     def forward(self): #we need to change this method to implement fragmentation#MTU is in bytes
         for i in range(len(self.in_intf_L)):
             pkt_S = None

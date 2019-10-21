@@ -170,10 +170,62 @@ class Router:
         #create a list of interfaces
         self.in_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
         self.out_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
+        #route_to
+        #self.route_table = route_table
 
     ## called when printing the object
     def __str__(self):
         return 'Router_%s' % (self.name)
+
+         #this picks the interface with the smallest MTU to pass through to Dijkstra's
+    def smallest_MTU(all_links): #all_links = LinkLayer.link_L[]
+
+        current_smallest = None #current_smallest is the interface with the smallest mtu
+
+        for i in link_L:
+            #gets next link in the list
+            next_Link = link_L[i].to_node
+
+            if next_Link.visited is False:
+                if current_smallest is None:
+                    current_smallest = next_Link
+                elif current_smallest.mtu > next_Link.in_intf.mtu:
+                    current_smallest = next_Link
+
+        return current_smallest
+
+    #finds the shortest path
+    #all_links = LinkLayer.link_L[] - link array
+    #current_smallest = smallest_MTU() - interface
+    def dijkstra(self, current_smallest, all_links):
+        #Dijkstra's is complete if all the hosts/routers were visited\
+
+        if current_smallest is None:
+            return
+        #marks the candidate as visited
+        current_smallest.visited = True
+
+        #loops through all the neighbors (Interface)
+        for i in current_smallest.in_intf_L:
+            neighbor = all_links[i].to_node
+            weight = current_smallest.in_intf_L[i].total_mtu
+            potential_relax = weight + (current_smallest.mtu)
+
+            #checks if the potential relaxed is less than the current distance
+            #puts the new shortest distance into the neighbors
+            if potential_relax < neighbor.total_mtu:
+                neighbor.total_mtu = potential_relax
+                short_path = current_smallest
+
+        return
+
+        #source: intf.addr
+        #dest: intf.addr
+        #def route_table(self, source, dest):
+            #if source == 3 or source == 4:
+                #print("error these only receive")
+            #elif source == 1:
+                #forward()
 
     ## look through the content of incoming interfaces and forward to
     # appropriate outgoing interfaces
@@ -195,16 +247,13 @@ class Router:
                             print("e")
                             #split
                         for i in self.out_intf_L:
-                            if self.out_intf_L[i].visited is False:
-                                self.out_intf_L[i] = True
+                            if self.out_intf_L[i].visited is False: # check if the interface has been visited
+                                self.out_intf_L[i].visited = True # mark as visisted
                                 self.out_intf_L[i].put(p.to_byte_S(), True)
                                 print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
-                                    % (self, p, i, i, self.out_intf_L[i].mtu))
+                                    % (self, p, i, self.out_intf_L[i], self.out_intf_L[i].mtu))
                             else:
                                 print('Error :(')
-                    self.out_intf_L[i].put(p.to_byte_S(), True)
-                    print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
-                        % (self, p, i, i, self.out_intf_L[i].mtu))
             except queue.Full:
                 print('%s: packet "%s" lost on interface %d' % (self, p, i))
                 pass
