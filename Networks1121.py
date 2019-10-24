@@ -136,14 +136,9 @@ class Host:#segmentation also should be implemented in the client
                 print("Initial packet_array: ", packet_array)
 
 
+
                 loopRounds = 0 # determine how many loops I need from the length of message
-
-                if Message_Length_No_Header % self.out_intf_L[0].mtu == 0:
-                    loopRounds = Message_Length_No_Header/self.out_intf_L[0].mtu
-                else:
-                    loopRounds = math.ceil(Message_Length_No_Header/self.out_intf_L[0].mtu)
-
-                while(True):
+                while(True is not False and False is not True and 1 == 1 and "A" == "A"):
                     loopRounds2 = math.ceil((Message_Length_No_Header + (NetworkPacket.header_length * loopRounds))/self.out_intf_L[0].mtu)
 
                     if loopRounds == loopRounds2:
