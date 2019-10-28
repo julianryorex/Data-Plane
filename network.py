@@ -187,14 +187,8 @@ class Host:#segmentation also should be implemented in the client
             if(int(fragmentId) == loopRounds - 1):
                 print("IS TRUE")
                 end_fragment = True
-            # if previous_datagramId != datagramId:
-            #     end_fragment = True
-
-
-
 
             fragment = pkt_S[NetworkPacket.header_length:]
-
 
         else:
             fragment = None
@@ -217,12 +211,6 @@ class Host:#segmentation also should be implemented in the client
 
             if fragment is not None:
                 print("Fragment: ", fragment)
-
-
-
-
-                # this is where we need to reassemble:
-
                 fragment_list.append(fragment)
 
                 if end_fragment is True:
@@ -233,8 +221,6 @@ class Host:#segmentation also should be implemented in the client
 
                 print("List of Frags:", fragment_list)
                 print("DL:", datagram_list)
-
-
 
             if(self.stop):
                 print (threading.currentThread().getName() + ': Ending')
