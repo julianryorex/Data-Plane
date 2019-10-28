@@ -20,17 +20,10 @@ class Interface:
         except queue.Empty:
             return None
 
-    ##put the packet into the interface queue
-    # @param pkt - Packet to be inserted into the queue
-    # @param block - if True, block until room in queue, if False may throw queue.Full exception
     def put(self, pkt, block=False):
         self.queue.put(pkt, block)
 
 
-## Implements a network layer packet (different from the RDT packet
-# from programming assignment 2).
-# NOTE: This class will need to be extended to for the packet to include
-# the fields necessary for the completion of this assignment.
 class NetworkPacket:
     ## packet encoding lengths
     dst_addr_S_length = 5
@@ -104,7 +97,7 @@ class NetworkPacket:
 
 
 ## Implements a network host for receiving and transmitting data
-class Host:#segmentation also should be implemented in the client
+class Host: # segmentation also should be implemented in the client
 
     ##@param addr: address of this node represented as an integer
     def __init__(self, addr):

@@ -48,7 +48,7 @@ if __name__ == '__main__':
     #create some send events
     sampledata = 'Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.'
     # client.udt_send(2, sampledata)
-    for i in range(11): # here we configure the message
+    for i in range(3): # here we configure the message
         print("SampleData: ", sampledata)
         client.udt_send(2, sampledata)
 
