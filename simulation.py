@@ -32,6 +32,7 @@ if __name__ == '__main__':
     link_layer.add_link(link.Link(client, 0, router_a, 0, 50))
     link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
 
+
     #start all the objects
     thread_L = []
     thread_L.append(threading.Thread(name=client.__str__(), target=client.run))
@@ -45,8 +46,12 @@ if __name__ == '__main__':
 
 
     #create some send events
-    for i in range(3):#here we configure the message
-        client.udt_send(2, 'Sample data MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmmmmm %d' % i)
+    sampledata = 'Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.'
+    # client.udt_send(2, sampledata)
+    for i in range(11): # here we configure the message
+        print("SampleData: ", sampledata)
+        client.udt_send(2, sampledata)
+
 
 
     #give the network sufficient time to transfer all packets before quitting

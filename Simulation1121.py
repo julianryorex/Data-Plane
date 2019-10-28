@@ -47,10 +47,9 @@ if __name__ == '__main__':
 
     #create some send events
     sampledata = 'Microsoft Word 97, 98, 2000, and 2001 include an undocumented feature that generates all of the sample text I need. '
-    client.udt_send(2, sampledata)
-    # for i in range(1): # here we configure the message
-        # print("SampleData: ", sampledata)
-        # client.udt_send(2, sampledata)
+    for i in range(3): # here we configure the message
+        print("SampleData: ", sampledata)
+        client.udt_send(2, sampledata)
 
 
 

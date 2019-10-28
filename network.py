@@ -1,10 +1,9 @@
-'''
-Created on Oct 12, 2016
-
-@author: mwittie
-'''
 import queue
 import threading
+import math
+import time
+
+# Why is it not working at the end, meaning why does the frgment list not have the first fragment?
 
 
 ## wrapper class for a queue of packets
@@ -17,7 +16,6 @@ class Interface:
     ##get packet from the queue interface
     def get(self):
         try:
-            print("Queue: ", self.queue.get(False))
             return self.queue.get(False)
         except queue.Empty:
             return None
@@ -38,6 +36,7 @@ class NetworkPacket:
     dst_addr_S_length = 5
     general_length = 5
     datagramId = 0
+    header_length = dst_addr_S_length + general_length*3
 
     ##@param dst_addr: address of the destination host
     # @param data_S: packet payload
@@ -45,6 +44,7 @@ class NetworkPacket:
         self.dst_addr = dst_addr
         self.data_S = data_S
         self.length = length
+
 
     ## called when printing the object
     def __str__(self):
@@ -68,34 +68,38 @@ class NetworkPacket:
 
     @classmethod
     def split_packet(self, bytes_packet, MTU, destination):
-        fragmentId = 0
-        count = 0
-        array_count=0
-        array_buffer = []
-        packet_array = [] # array list
-        for b in bytes_packet:
-            print("Count: ", count)
-            count = count + 1
-            print("Type: " , type(b))
-            print("B: ", b)
-            array_buffer.append(b)
+        fragmentId = 0 # initial fragmentID
+        count = 0 # counting the number of letters than can fit in a message in a packet
+        array_count = 0
+        array_buffer = [] # temp array for message
+        packet_array = [] # array that has all information to make a packet
 
-            if count >= MTU:
+        loopCount = 0
+        for letter in bytes_packet:
+
+            count += 1
+            array_buffer.append(letter)
+
+            # if array_buffer (count) exceeds MTU or we are on the last index of bytes_packet in array_buffer:
+            # to check if we are on the last index, I check the index of the current letter in the for loop,
+            # and I start the index check from the current position of the loop using loopCount, and I check
+            # if it is indeed the last letter in the loop
+            if count == (MTU - self.header_length) or bytes_packet.index(letter, loopCount) == len(bytes_packet) - 1 : # index 0 - 34
+
                 packet_array.append(str(destination).zfill(self.dst_addr_S_length)) # destination
                 packet_array.append(str(self.datagramId).zfill(self.general_length)) # datagramId
                 packet_array.append(str(fragmentId).zfill(self.general_length)) # fragmentId
                 packet_array.append(array_buffer) # data
-                count = 0
-                array_count += 1
-                array_buffer = []
                 fragmentId += 1
 
+                if count == (MTU - self.header_length): # do additional things if count exceeds MTU
+                    count = 0
+                    array_count += 1
+                    array_buffer = []
 
+            loopCount += 1
 
-        # created an array of segmented packets
-        self.datagramId += 1
-
-
+        self.datagramId += 1 # increment for next datagram. (global var)
         return packet_array
 
 
@@ -117,43 +121,125 @@ class Host:#segmentation also should be implemented in the client
     # @param dst_addr: destination address for the packet
     # @param data_S: data being transmitted to the network layer
     def udt_send(self, dst_addr, data_S):
-        #need to split here ?
-        p = NetworkPacket(dst_addr, data_S,None)
+
+        Message_Length_No_Header = len(data_S)
+        p = NetworkPacket(dst_addr, data_S, None)
         bytes_to_compute_length = p.to_byte_S()
-        # print("Bytes: " , bytes_to_compute_length)
+
         packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
         destination = packet.dst_addr
-        # print("Destination: ", destination)
+
         if packet.length is not None:
             if packet.length > self.out_intf_L[0].mtu:
-                print("packet too big")#need to split
-                packet_array = NetworkPacket.split_packet(bytes_to_compute_length,self.out_intf_L[0].mtu, destination)
-                for packet in packet_array:
-                    s = ""
-                    p_string = s.join(packet)
-                    pack = NetworkPacket.from_byte_S(p_string)
-                    self.out_intf_L[0].put(pack.to_byte_S())
+                bytes_to_compute_length = bytes_to_compute_length[5:] # remove extra destination
+
+                packet_array = NetworkPacket.split_packet(bytes_to_compute_length, self.out_intf_L[0].mtu, destination)
+                print("Initial packet_array: ", packet_array)
+
+
+                loopRounds = 0 # determine how many loops I need from the length of message
+
+                while(True):
+                    loopRounds2 = math.ceil((Message_Length_No_Header + (NetworkPacket.header_length * loopRounds))/self.out_intf_L[0].mtu)
+
+                    if loopRounds == loopRounds2:
+                        break
+                    else:
+                        loopRounds = loopRounds2
+
+
+                for i in range(3, loopRounds*4, 4): # FOR LOOP for each fragmentId
+
+                    packet_array[i] = "".join(packet_array[i])
+                    string_message = "".join(packet_array[i-3:i+1])
+                    string_message = str(loopRounds).zfill(5) + string_message
+                    print("String:", string_message)
+                    send_packet = NetworkPacket.from_byte_S(string_message)
+                    self.out_intf_L[0].put(send_packet.to_byte_S())
+
             else:
                 self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully NO SEG
-        print('%s: sending packet "%s" on the out interface with mtu=%d' % (self, p, self.out_intf_L[0].mtu))
 
     ## receive packet from the network layer
-    def udt_receive(self):
+    def udt_receive(self, previous_fragmentId, previous_datagramId):
+
+        fragment = ""
+        datagramId = ""
+        fragmentId = ""
+        end_fragment = False
+        loopRounds = 0
 
         pkt_S = self.in_intf_L[0].get()
 
         if pkt_S is not None:
-            print('%s: received packet "%s" on the in interface' % (self, pkt_S))
+            print("pkts :",pkt_S)
+            loopRounds = int(pkt_S[:NetworkPacket.dst_addr_S_length])
+            datagramId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length]
+            fragmentId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length+ NetworkPacket.general_length]
+
+            # at the end of this function, we want to return a parsed fragment.
+
+            print("loopR:", loopRounds)
+            if previous_datagramId == "" or previous_fragmentId == "": # base case (first case)
+                previous_datagramId = datagramId
+                previous_fragmentId = fragmentId
+
+            if(int(fragmentId) == loopRounds - 1):
+                print("IS TRUE")
+                end_fragment = True
+            # if previous_datagramId != datagramId:
+            #     end_fragment = True
+
+
+
+
+            fragment = pkt_S[NetworkPacket.header_length:]
+
+
+        else:
+            fragment = None
+
+        return fragment, datagramId, fragmentId, end_fragment
 
     ## thread target for the host to keep receiving data
     def run(self):
+
         print (threading.currentThread().getName() + ': Starting')
-        while True:
-            #receive data arriving to the in interface
-            self.udt_receive()
-            #terminate
+        fragment_list = []
+        datagram_list = []
+        current_fragmentId = ""
+        current_datagramId = ""
+        end_fragment = False
+
+        while True: #receive data arriving to the in interface
+
+            fragment, current_datagramId, current_fragmentId, end_fragment = self.udt_receive(current_fragmentId, current_datagramId)
+
+            if fragment is not None:
+                print("Fragment: ", fragment)
+
+
+
+
+                # this is where we need to reassemble:
+
+                fragment_list.append(fragment)
+
+                if end_fragment is True:
+                    print("New datagram!")
+                    datagram = "".join(fragment_list)
+                    datagram_list.append(datagram)
+                    fragment_list = []
+
+                print("List of Frags:", fragment_list)
+                print("DL:", datagram_list)
+
+
+
             if(self.stop):
                 print (threading.currentThread().getName() + ': Ending')
+                for element in datagram_list:
+                    print("reassembled: ",element)
                 return
 
 
@@ -164,7 +250,6 @@ class Router:
     ##@param name: friendly router name for debugging
     # @param intf_count: the number of input and output interfaces
     # @param max_queue_size: max queue length (passed to Interface)
-    # The routing table for each router should be passed into the Router constructor
     def __init__(self, name, intf_count, max_queue_size):
         self.stop = False #for thread termination
         self.name = name
@@ -178,11 +263,6 @@ class Router:
 
     ## look through the content of incoming interfaces and forward to
     # appropriate outgoing interfaces
-
-    ## TODO:
-    # Create routing tables so that Host 1/2 can send packets to Host 3/4 respectively
-    #The format of these is up to you. You will also need to modify the Router class to forward the packets correctly between interfaces according to your routing tables.
-    # Finally, third, configure the routing tables to forward packets from Host 1 through Router B and from Host 2 through Router C. You may extend NetworkPacket with a source address, but it is not necessary to forward a packet onto different paths.
     def forward(self): #we need to change this method to implement fragmentation#MTU is in bytes
         for i in range(len(self.in_intf_L)):
             pkt_S = None
@@ -200,14 +280,6 @@ class Router:
                         if p.length > self.out_intf_L[i].mtu:
                             print("e")
                             #split
-                        for i in self.out_intf_L:
-                            if self.out_intf_L[i].visited is False:
-                                self.out_intf_L[i] = True
-                                self.out_intf_L[i].put(p.to_byte_S(), True)
-                                print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
-                                    % (self, p, i, i, self.out_intf_L[i].mtu))
-                            else:
-                                print('Error :(')
                     self.out_intf_L[i].put(p.to_byte_S(), True)
                     print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
                         % (self, p, i, i, self.out_intf_L[i].mtu))
