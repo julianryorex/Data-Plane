@@ -129,9 +129,7 @@ class Host: # segmentation also should be implemented in the client
                 packet_array = NetworkPacket.split_packet(bytes_to_compute_length, self.out_intf_L[0].mtu, destination)
                 print("Initial packet_array: ", packet_array)
 
-
                 loopRounds = 0 # determine how many loops I need from the length of message
-
                 while(True):
                     loopRounds2 = math.ceil((Message_Length_No_Header + (NetworkPacket.header_length * loopRounds))/self.out_intf_L[0].mtu)
 
@@ -142,10 +140,12 @@ class Host: # segmentation also should be implemented in the client
 
 
                 for i in range(3, loopRounds*4, 4): # FOR LOOP for each fragmentId
-
+                    morefragment=1
                     packet_array[i] = "".join(packet_array[i])
                     string_message = "".join(packet_array[i-3:i+1])
-                    string_message = str(loopRounds).zfill(5) + string_message
+                    if (i == (loopRounds * 4) -1):#is last fragment
+                        morefragment=0#set more fragment to 0
+                    string_message = str(morefragment).zfill(5) + string_message
                     print("String:", string_message)
                     send_packet = NetworkPacket.from_byte_S(string_message)
                     self.out_intf_L[0].put(send_packet.to_byte_S())
@@ -160,24 +160,24 @@ class Host: # segmentation also should be implemented in the client
         datagramId = ""
         fragmentId = ""
         end_fragment = False
-        loopRounds = 0
+        morefragment = 0
 
         pkt_S = self.in_intf_L[0].get()
 
         if pkt_S is not None:
             print("pkts :",pkt_S)
-            loopRounds = int(pkt_S[:NetworkPacket.dst_addr_S_length])
+            morefragment = int(pkt_S[:NetworkPacket.dst_addr_S_length])
             datagramId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length]
             fragmentId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length+ NetworkPacket.general_length]
 
             # at the end of this function, we want to return a parsed fragment.
 
-            print("loopR:", loopRounds)
+            print("morefragment:", morefragment)
             if previous_datagramId == "" or previous_fragmentId == "": # base case (first case)
                 previous_datagramId = datagramId
                 previous_fragmentId = fragmentId
 
-            if(int(fragmentId) == loopRounds - 1):
+            if(int(morefragment) is not 1):#more fragment is 0 so no more fragment
                 print("IS TRUE")
                 end_fragment = True
 

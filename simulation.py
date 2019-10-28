@@ -10,7 +10,7 @@ from time import sleep
 
 ##configuration parameters
 router_queue_size = 0 #0 means unlimited
-simulation_time = 1 #give the network sufficient time to transfer all packets before quitting
+simulation_time = 10 #give the network sufficient time to transfer all packets before quitting#slower but works more
 
 if __name__ == '__main__':
     object_L = [] #keeps track of objects, so we can kill their threads
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     #create some send events
     sampledata = 'Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.'
     # client.udt_send(2, sampledata)
-    for i in range(3): # here we configure the message
+    for i in range(10): # here we configure the message
         print("SampleData: ", sampledata)
         client.udt_send(2, sampledata)
 
