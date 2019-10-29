@@ -1,6 +1,7 @@
 import queue
 import threading
 import math
+import time
 
 # Why is it not working at the end, meaning why does the frgment list not have the first fragment?
 
@@ -19,23 +20,16 @@ class Interface:
         except queue.Empty:
             return None
 
-    ##put the packet into the interface queue
-    # @param pkt - Packet to be inserted into the queue
-    # @param block - if True, block until room in queue, if False may throw queue.Full exception
     def put(self, pkt, block=False):
         self.queue.put(pkt, block)
 
 
-## Implements a network layer packet (different from the RDT packet
-# from programming assignment 2).
-# NOTE: This class will need to be extended to for the packet to include
-# the fields necessary for the completion of this assignment.
 class NetworkPacket:
     ## packet encoding lengths
     dst_addr_S_length = 5
     general_length = 5
     datagramId = 0
-    header_length = dst_addr_S_length + general_length*2
+    header_length = dst_addr_S_length + general_length*3
 
     ##@param dst_addr: address of the destination host
     # @param data_S: packet payload
@@ -103,7 +97,7 @@ class NetworkPacket:
 
 
 ## Implements a network host for receiving and transmitting data
-class Host:#segmentation also should be implemented in the client
+class Host: # segmentation also should be implemented in the client
 
     ##@param addr: address of this node represented as an integer
     def __init__(self, addr):
@@ -135,10 +129,8 @@ class Host:#segmentation also should be implemented in the client
                 packet_array = NetworkPacket.split_packet(bytes_to_compute_length, self.out_intf_L[0].mtu, destination)
                 print("Initial packet_array: ", packet_array)
 
-
-
                 loopRounds = 0 # determine how many loops I need from the length of message
-                while(True is not False and False is not True and 1 == 1 and "A" == "A"):
+                while(True):
                     loopRounds2 = math.ceil((Message_Length_No_Header + (NetworkPacket.header_length * loopRounds))/self.out_intf_L[0].mtu)
 
                     if loopRounds == loopRounds2:
@@ -146,19 +138,15 @@ class Host:#segmentation also should be implemented in the client
                     else:
                         loopRounds = loopRounds2
 
-                print("Loop Number: ", loopRounds)
-                print("Loop Rounds2: ", loopRounds2)
-                print("loopRounds*4: ", loopRounds*4)
-                print("length: ", len(packet_array))
-                print("packet_array: ", packet_array)
 
                 for i in range(3, loopRounds*4, 4): # FOR LOOP for each fragmentId
-
-                    print("I: ", i)
-                    print("Packet Array[i]: ", packet_array[i])
+                    morefragment=1
                     packet_array[i] = "".join(packet_array[i])
                     string_message = "".join(packet_array[i-3:i+1])
-                    print("Stringggg:", string_message)
+                    if (i == (loopRounds * 4) -1):#is last fragment
+                        morefragment=0#set more fragment to 0
+                    string_message = str(morefragment).zfill(5) + string_message
+                    print("String:", string_message)
                     send_packet = NetworkPacket.from_byte_S(string_message)
                     self.out_intf_L[0].put(send_packet.to_byte_S())
 
@@ -166,60 +154,71 @@ class Host:#segmentation also should be implemented in the client
                 self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully NO SEG
 
     ## receive packet from the network layer
-    def udt_receive(self, l, datagramId_receive):
+    def udt_receive(self, previous_fragmentId, previous_datagramId):
 
-        list_empty = False
         fragment = ""
-
+        datagramId = ""
+        fragmentId = ""
+        end_fragment = False
+        morefragment = 0
 
         pkt_S = self.in_intf_L[0].get()
 
-
         if pkt_S is not None:
-            print("pkts : s",pkt_S)
-            datagramId = pkt_S[NetworkPacket.dst_addr_S_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length]
-            fragmentId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length]
+            print("pkts :",pkt_S)
+            morefragment = int(pkt_S[:NetworkPacket.dst_addr_S_length])
+            datagramId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length]
+            fragmentId = pkt_S[NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length:NetworkPacket.dst_addr_S_length + NetworkPacket.general_length + NetworkPacket.general_length+ NetworkPacket.general_length]
 
-            if datagramId == datagramId_receive: # if we receive 2 or more fragments of the same datagram
-                print("WORKS...")
-                # reassemble
-                fragment = pkt_S[NetworkPacket.header_length-1:] # message content slice from index header_length - 1
+            # at the end of this function, we want to return a parsed fragment.
 
-            else:
-                list_empty = True
-                datagramId_receive = datagramId
+            print("morefragment:", morefragment)
+            if previous_datagramId == "" or previous_fragmentId == "": # base case (first case)
+                previous_datagramId = datagramId
+                previous_fragmentId = fragmentId
 
-            print('%s: received packet "%s" on the in interface' % (self, pkt_S))
+            if(int(morefragment) is not 1):#more fragment is 0 so no more fragment
+                print("IS TRUE")
+                end_fragment = True
 
-            return datagramId, list_empty, fragment
+            fragment = pkt_S[NetworkPacket.header_length:]
 
         else:
-            return None, None, None
+            fragment = None
+
+        return fragment, datagramId, fragmentId, end_fragment
 
     ## thread target for the host to keep receiving data
     def run(self):
 
         print (threading.currentThread().getName() + ': Starting')
         fragment_list = []
-        datagramId_receive = ""
+        datagram_list = []
+        current_fragmentId = ""
+        current_datagramId = ""
+        end_fragment = False
 
         while True: #receive data arriving to the in interface
 
-            datagramId_receive, empty, fragment = self.udt_receive(fragment_list, datagramId_receive)
+            fragment, current_datagramId, current_fragmentId, end_fragment = self.udt_receive(current_fragmentId, current_datagramId)
 
-            if datagramId_receive is not None or empty is not None or fragment is not None:
-                print("Fragmentt: ", fragment)
+            if fragment is not None:
+                print("Fragment: ", fragment)
                 fragment_list.append(fragment)
-                print("FR: ", fragment_list)
 
-                if empty is True:
-                    print("Datagram: ", fragment_list)
+                if end_fragment is True:
+                    print("New datagram!")
+                    datagram = "".join(fragment_list)
+                    datagram_list.append(datagram)
                     fragment_list = []
 
-
+                print("List of Frags:", fragment_list)
+                print("DL:", datagram_list)
 
             if(self.stop):
                 print (threading.currentThread().getName() + ': Ending')
+                for element in datagram_list:
+                    print("reassembled: ",element)
                 return
 
 
