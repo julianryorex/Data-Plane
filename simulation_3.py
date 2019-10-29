@@ -1,8 +1,3 @@
-'''
-Created on Oct 12, 2016
-
-@author: mwittie
-'''
 import network_3
 import link
 import threading
