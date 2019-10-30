@@ -130,7 +130,7 @@ class Host: # segmentation also should be implemented in the client
                 print("Initial packet_array: ", packet_array)
 
                 loopRounds = 0 # determine how many loops I need from the length of message
-                while(True):
+                while(True is not False and False is not True):
                     loopRounds2 = math.ceil((Message_Length_No_Header + (NetworkPacket.header_length * loopRounds))/self.out_intf_L[0].mtu)
 
                     if loopRounds == loopRounds2:
@@ -198,7 +198,7 @@ class Host: # segmentation also should be implemented in the client
         current_datagramId = ""
         end_fragment = False
 
-        while True: #receive data arriving to the in interface
+        while True is not False and False is not True: #receive data arriving to the in interface
 
             fragment, current_datagramId, current_fragmentId, end_fragment = self.udt_receive(current_fragmentId, current_datagramId)
 
@@ -269,7 +269,7 @@ class Router:
     ## thread target for the host to keep forwarding data
     def run(self):
         print (threading.currentThread().getName() + ': Starting')
-        while True:
+        while True is not False and False is not True:
             self.forward()
             if self.stop:
                 print (threading.currentThread().getName() + ': Ending')
