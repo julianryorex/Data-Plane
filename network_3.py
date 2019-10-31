@@ -1,8 +1,3 @@
-'''
-Created on Oct 12, 2016
-
-@author: mwittie
-'''
 import queue
 import threading
 
@@ -42,10 +37,9 @@ class NetworkPacket:
 
     ##@param dst_addr: address of the destination host
     # @param data_S: packet payload
-    def __init__(self, dst_addr, data_S, length):
+    def __init__(self, dst_addr, data_S):
         self.dst_addr = dst_addr
         self.data_S = data_S
-        self.length = length
 
     ## called when printing the object
     def __str__(self):
@@ -65,43 +59,10 @@ class NetworkPacket:
         dst_addr = int(byte_S[0 : NetworkPacket.dst_addr_S_length])
         data_S = byte_S[NetworkPacket.dst_addr_S_length : ]
 
-        return self(dst_addr, data_S, length)
-
-    @classmethod
-    def split_packet(self, bytes_packet, MTU, destination):
-        fragmentId = 0
-        count = 0
-        array_count=0
-        array_buffer = []
-        packet_array = [] # array list
-        for b in bytes_packet:
-            print("Count: ", count)
-            count = count + 1
-            print("Type: " , type(b))
-            print("B: ", b)
-            array_buffer.append(b)
-
-            if count >= MTU:
-                packet_array.append(str(destination).zfill(self.dst_addr_S_length)) # destination
-                packet_array.append(str(self.datagramId).zfill(self.general_length)) # datagramId
-                packet_array.append(str(fragmentId).zfill(self.general_length)) # fragmentId
-                packet_array.append(array_buffer) # data
-                count = 0
-                array_count += 1
-                array_buffer = []
-                fragmentId += 1
-
-
-
-        # created an array of segmented packets
-        self.datagramId += 1
-
-
-        return packet_array
-
+        return self(dst_addr, data_S)
 
 ## Implements a network host for receiving and transmitting data
-class Host:#segmentation also should be implemented in the client
+class Host:
 
     ##@param addr: address of this node represented as an integer
     def __init__(self, addr):
@@ -118,28 +79,16 @@ class Host:#segmentation also should be implemented in the client
     # @param dst_addr: destination address for the packet
     # @param data_S: data being transmitted to the network layer
     def udt_send(self, dst_addr, data_S):
-        #need to split here ?
-        #print("SEND")
-        p = NetworkPacket(dst_addr, data_S,None)
-        bytes_to_compute_length = p.to_byte_S()
-        # print("Bytes: " , bytes_to_compute_length)
-        packet = NetworkPacket.from_byte_S(bytes_to_compute_length)
-        destination = packet.dst_addr
-        print("Destination: ", destination)
-        if packet.length is not None:
-            if packet.length > self.out_intf_L[0].mtu:
-                print("packet too big")#need to split
-                packet_array = NetworkPacket.split_packet(bytes_to_compute_length,self.out_intf_L[0].mtu, destination)
-                for packet in packet_array:
-                    s = ""
-                    p_string = s.join(packet)
-                    pack = NetworkPacket.from_byte_S(p_string)
-                    self.out_intf_L[0].put(pack.to_byte_S())
-            else:
-                self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully NO SEG
-        print('%s: sending packet "%s" out the interface "%s" with mtu=%d' % (self, p, self.out_intf_L[0], self.out_intf_L[0].mtu))
+        p_L = []
+        maxDataLen = self.out_intf_L[0].mtu - NetworkPacket.dst_addr_S_length
+        while len(data_S):
+            p_L += [NetworkPacket(dst_addr, data_S[:maxDataLen])]
+            data_S = data_S[maxDataLen:]
+        for p in p_L:
+            self.out_intf_L[0].put(p.to_byte_S()) #send packets always enqueued successfully
+            print('%s: sending packet "%s" on the out interface with mtu=%d' % (self, p, self.out_intf_L[0].mtu))
 
-    ## receive packet from the network layer
+ ## receive packet from the network layer
     def udt_receive(self):
 
         #print('%s RECEIVE' % self)
@@ -164,22 +113,21 @@ class Host:#segmentation also should be implemented in the client
                 print (threading.currentThread().getName() + ': Ending')
                 return
 
-
-
 ## Implements a multi-interface router described in class
 class Router:
 
     ##@param name: friendly router name for debugging
     # @param intf_count: the number of input and output interfaces
     # @param max_queue_size: max queue length (passed to Interface)
-    def __init__(self, name, intf_count, max_queue_size):
+    def __init__(self, name, intf_count, max_queue_size, forward_table = None):
         self.stop = False #for thread termination
         self.name = name
         #create a list of interfaces
         self.in_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
         self.out_intf_L = [Interface(max_queue_size) for _ in range(intf_count)]
-        #route_to
-        #route_table = route_table
+        self.forward_table = forward_table
+        self.interface_count = intf_count
+
 
     ## called when printing the object
     def __str__(self):
@@ -187,7 +135,7 @@ class Router:
 
     ## look through the content of incoming interfaces and forward to
     # appropriate outgoing interfaces
-    def forward(self): #we need to change this method to implement fragmentation#MTU is in bytes
+    def forward(self):
         #print("__________forward")
         for i in range(len(self.in_intf_L)):
             pkt_S = None
@@ -200,17 +148,14 @@ class Router:
                     # HERE you will need to implement a lookup into the
                     # forwarding table to find the appropriate outgoing interface
                     # for now we assume the outgoing interface is also i
-                    if p.length is not None:
-                        print(self.out_intf_L[i].mtu)
-                        if p.length > self.out_intf_L[i].mtu:
-                            print("e")
-                            #split
-                        for i in self.out_intf_L:
-                                i.put(p.to_byte_S(), True)
-                                print('%s: forwarding packet "%s" from interface with mtu %d' \
-                                    % (self, p, i.mtu))
+                    c = self.forward_table[i]
+                    print("Forwarding: ", c, i)
+                    if(c[1]== p.dst_addr):
+                        self.out_intf_L[c[0]].put(p.to_byte_S(), True)
+                        print('%s: forwarding packet "%s" from interface %d to %d with mtu %d' \
+                        % (self, p, i, i, self.out_intf_L[c[0]].mtu))
             except queue.Full:
-                print('%s: packet "%s" lost on interface' % (self, p))
+                print('%s: packet "%s" lost on interface %d' % (self, p, i))
                 pass
 
     ## thread target for the host to keep forwarding data
