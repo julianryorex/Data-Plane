@@ -1,5 +1,5 @@
 import network_3
-import link
+import link_3 as link
 import threading
 from time import sleep
 
@@ -68,8 +68,8 @@ if __name__ == '__main__':
 
     #create some send events
     for i in range(1):#here we configure the message
-        #host2.udt_send(4, 'Sample data Mmm %d' % i)
-        host1.udt_send(3, 'Sample data Mmm %d' % i)
+        host2.udt_send(4, 'Sample data Mmm %d' % i)
+        # host1.udt_send(3, 'Sample data Mmm %d' % i)
 
 
     #give the network sufficient time to transfer all packets before quitting
